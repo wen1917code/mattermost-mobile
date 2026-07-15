@@ -177,7 +177,7 @@
     }
   },
   "scripts": {
-    "android": "react-native run-android",
+    "android": "expo run:android",
     "build:android": "./scripts/build.sh apk",
     "build:android-unsigned": "./scripts/build.sh apk unsigned",
     "build:ios": "./scripts/build.sh ipa",
@@ -191,7 +191,7 @@
     "fix": "npm run lint -- --fix",
     "i18n-clean-empty": "npm run mmjstool -- i18n clean-empty --mobile-dir .",
     "i18n-extract": "npm run mmjstool -- i18n extract-mobile",
-    "ios": "react-native run-ios",
+    "ios": "expo run:ios",
     "ios-gems": "bundle install",
     "intune:disable": "./scripts/intune-disable.sh",
     "intune:enable": "INTUNE_ENABLED=1 npm run intune:link && INTUNE_ENABLED=1 npm run pod-install",

@@ -5,6 +5,9 @@
     "scheme": "mattermost",
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "android": {
+      "package": "com.anonymous.mattermostmobile"
+    }
   }
 }
