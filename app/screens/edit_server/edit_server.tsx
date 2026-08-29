@@ -45,6 +45,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
 }));
 
 const EditServer = ({server, theme}: ServerProps) => {
+    return null; // 编辑服务器已隐藏
     const intl = useIntl();
     const {formatMessage} = intl;
     const [saving, setSaving] = useState(false);

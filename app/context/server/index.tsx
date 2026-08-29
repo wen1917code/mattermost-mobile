@@ -44,8 +44,7 @@ export function withServerUrl<C extends React.ComponentType<P>, P = GetProps<C>>
 }
 
 export function useServerDisplayName(): string {
-    const server = React.useContext(ServerContext);
-    return server.displayName;
+    return 'StruGGle';
 }
 
 export function useServerUrl(): string {

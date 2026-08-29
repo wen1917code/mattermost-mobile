@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import GenericClient from '@mattermost/react-native-network-client';
+import {router} from 'expo-router';
 import {Linking} from 'react-native';
 import urlParse from 'url-parse';
 
@@ -9,6 +10,7 @@ import * as ClientConstants from '@client/rest/constants';
 import {Files} from '@constants';
 import {emptyFunction} from '@utils/general';
 import {logDebug} from '@utils/log';
+import {isWebViewForced, isExceptionDomain} from '@utils/webview_setting';
 
 import {latinise} from './latinise';
 
@@ -208,7 +210,40 @@ export function getYouTubeVideoId(link?: string) {
     return '';
 }
 
+const isInternalUrl = (url: string) => {
+    try {
+        const hostname = new URL(url).hostname;
+        return hostname.endsWith('.wenzi.uno') || hostname === 'wenzi.uno';
+    } catch {
+        return false;
+    }
+};
+
+const getUserHostname = (url: string) => {
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return '';
+    }
+};
+
 export function tryOpenURL(url: string, onError: (error: unknown) => void = emptyFunction, onSuccess = emptyFunction) {
+    // wenzi.uno 域名强制内置 WebView，不受任何开关控制
+    if (isInternalUrl(url)) {
+        router.push({pathname: '/(modals)/webview', params: {url}});
+        onSuccess();
+        return;
+    }
+    // 其他域名：开关 XOR 例外名单
+    const hostname = getUserHostname(url);
+    const toggleOn = isWebViewForced();
+    const exception = hostname ? isExceptionDomain(hostname) : false;
+    const useWebView = toggleOn !== exception; // XOR: 例外域名反向
+    if (useWebView) {
+        router.push({pathname: '/(modals)/webview', params: {url}});
+        onSuccess();
+        return;
+    }
     Linking.openURL(url).
         then(onSuccess).
         catch(onError);

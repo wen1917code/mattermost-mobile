@@ -9,6 +9,7 @@ import {AppRegistry, LogBox, Platform} from 'react-native';
 import {BackgroundTimer} from 'react-native-nitro-bg-timer-plus';
 
 import {logInfo} from './app/utils/log';
+import {loadWebViewSetting} from './app/utils/webview_setting';
 
 // Opt out of the nitro-bg-timer-plus foreground service — we removed its manifest
 // entries, so we also disable it at runtime to prevent the library from attempting
@@ -19,6 +20,9 @@ if (Platform.OS === 'android') {
 
 // eslint-disable-next-line no-process-env
 process.env.EXPO_OS = Platform.OS;
+
+// 预加载 WebView 设置（默认开启）
+loadWebViewSetting();
 
 declare const global: { HermesInternal: null | {} };
 

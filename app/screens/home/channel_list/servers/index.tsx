@@ -4,21 +4,14 @@
 import React, {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import {useIntl} from 'react-intl';
 import {StyleSheet, type StyleProp, type ViewStyle} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import ServerIcon from '@components/server_icon';
 import {useServerUrl} from '@context/server';
 import {useTheme} from '@context/theme';
 import {subscribeAllServers} from '@database/subscription/servers';
 import {subscribeUnreadAndMentionsByServer, type UnreadObserverArgs} from '@database/subscription/unreads';
-import {useWindowDimensions} from '@hooks/device';
 import useDidMount from '@hooks/did_mount';
-import {BUTTON_HEIGHT, TITLE_HEIGHT} from '@screens/bottom_sheet';
-import {bottomSheet} from '@screens/navigation';
-import {bottomSheetSnapPoint} from '@utils/helpers';
 import {sortServersByDisplayName} from '@utils/server';
-
-import ServerList, {AddServerButton} from './servers_list';
 
 import type ServersModel from '@typings/database/models/app/servers';
 import type {UnreadMessages, UnreadSubscription} from '@typings/database/subscriptions';
@@ -61,8 +54,6 @@ const Servers = React.forwardRef<ServersRef, Props>(({
     const [total, setTotal] = useState<UnreadMessages>({mentions: 0, unread: false});
     const registeredServers = useRef<ServersModel[] | undefined>(undefined);
     const currentServerUrl = useServerUrl();
-    const dimensions = useWindowDimensions();
-    const insets = useSafeAreaInsets();
     const theme = useTheme();
 
     const updateTotal = () => {
@@ -123,30 +114,8 @@ const Servers = React.forwardRef<ServersRef, Props>(({
     };
 
     const onPress = useCallback(() => {
-        if (registeredServers.current?.length) {
-            const renderContent = () => {
-                return (
-                    <ServerList servers={registeredServers.current!}/>
-                );
-            };
-            const maxScreenHeight = Math.ceil(0.6 * dimensions.height);
-            const maxSnapPoint = Math.min(
-                maxScreenHeight,
-                bottomSheetSnapPoint(registeredServers.current.length, SERVER_ITEM_HEIGHT) + TITLE_HEIGHT + BUTTON_HEIGHT + insets.bottom +
-                    (registeredServers.current.filter((s: ServersModel) => s.lastActiveAt).length * PUSH_ALERT_TEXT_HEIGHT),
-            );
-
-            const snapPoints: Array<string | number> = [
-                1,
-                maxSnapPoint,
-            ];
-            if (maxSnapPoint === maxScreenHeight) {
-                snapPoints.push('80%');
-            }
-
-            bottomSheet(renderContent, snapPoints, AddServerButton);
-        }
-    }, [dimensions.height, insets.bottom]);
+        // 换服功能已禁用
+    }, []);
 
     useImperativeHandle(ref, () => ({
         openServers: onPress,

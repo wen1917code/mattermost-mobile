@@ -10,8 +10,8 @@ import {logError} from '@utils/log';
 
 import availableLanguages from './languages';
 
-const PRIMARY_LOCALE = 'en';
-const deviceLocale = getLocales()[0]?.languageTag || PRIMARY_LOCALE;
+const PRIMARY_LOCALE = 'zh-CN';
+const deviceLocale = 'zh-CN';
 export const DEFAULT_LOCALE = getLocaleFromLanguage(deviceLocale);
 
 function loadTranslation(locale?: string): {[x: string]: string} {

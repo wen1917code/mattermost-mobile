@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {DeviceEventEmitter} from 'react-native';
+import {AppState, Platform} from 'react-native';
 
 import {storeMyChannelsForTeam, markChannelAsUnread, markChannelAsViewed, updateLastPostAt} from '@actions/local/channel';
 import {addPostAcknowledgement, markPostAsDeleted, removePostAcknowledgement, updatePostTranslation} from '@actions/local/post';
@@ -26,6 +27,7 @@ import {NavigationStore} from '@store/navigation_store';
 import {hasArrayChanged, isTablet} from '@utils/helpers';
 import {logWarning} from '@utils/log';
 import {isFromWebhook, isSystemMessage, shouldIgnorePost} from '@utils/post';
+import {isSummaryEnabled} from '@utils/webview_setting';
 
 import type {Model} from '@nozbe/watermelondb';
 import type MyChannelModel from '@typings/database/models/servers/my_channel';
@@ -37,6 +39,7 @@ function preparedMyChannelHack(myChannel: MyChannelModel) {
 }
 
 export async function handleNewPostEvent(serverUrl: string, msg: WebSocketMessage) {
+    console.warn('### handleNewPostEvent called', serverUrl);
     const operator = DatabaseManager.serverDatabases[serverUrl]?.operator;
     if (!operator) {
         return;
@@ -196,6 +199,43 @@ export async function handleNewPostEvent(serverUrl: string, msg: WebSocketMessag
     models.push(...postModels);
 
     await operator.batchRecords(models, 'handleNewPostEvent');
+
+    // WebSocket-only push: show local notification for messages from other users
+    if (post.user_id !== currentUserId) {
+        try {
+            const channel = await getChannelById(database, post.channel_id);
+            const channelName = channel?.displayName || '';
+            const {Notifications} = require('react-native-notifications');
+            if (isSummaryEnabled()) {
+                const now = Date.now();
+                const summaryKey = '###summary';
+                if ((now - ((global as any).__lastSummaryTime || 0)) < 5000) {
+                    (global as any).__summaryCount = ((global as any).__summaryCount || 0) + 1;
+                    Notifications.postLocalNotification({
+                        identifier: summaryKey,
+                        title: '新消息',
+                        body: '收到 ' + (global as any).__summaryCount + ' 条新消息',
+                        sound: '',
+                        badge: 1,
+                        channelId: 'messages',
+                    });
+                    return;
+                }
+                (global as any).__lastSummaryTime = now;
+                (global as any).__summaryCount = 1;
+            }
+            Notifications.postLocalNotification({
+                identifier: 'msg_' + post.id,
+                title: channelName || '新消息',
+                body: post.message || '收到一条新消息',
+                sound: 'default',
+                badge: 1,
+                channelId: 'messages',
+            });
+        } catch {
+            // ignore
+        }
+    }
 }
 
 export async function handlePostEdited(serverUrl: string, msg: WebSocketMessage) {

@@ -11,6 +11,7 @@ import {dismissBottomSheet} from '@screens/navigation';
 import {addNewServer} from '@utils/server';
 
 const AddServerButton = (props: BottomSheetFooterProps) => {
+    return null; // 服务器切换已禁用
     const theme = useTheme();
     const {formatMessage} = useIntl();
 

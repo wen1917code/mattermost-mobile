@@ -49,7 +49,7 @@ export const sortByNewest = (a: SortByCreatAt, b: SortByCreatAt) => {
     return 1;
 };
 
-export const isBetaApp = applicationId && applicationId.includes('rnbeta');
+export const isBetaApp = false;
 
 // getContrastingSimpleColor returns a contrasting color - either black or white, depending on the luminance
 // of the supplied color. Both input and output colors are in hexadecimal color code.

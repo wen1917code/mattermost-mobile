@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta
+package com.wen.struggle
 
 import android.content.res.Configuration
 import android.os.Build

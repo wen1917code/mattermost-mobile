@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
 const keyExtractor = (item: ServersModel) => item.url;
 
 const ServerList = ({servers}: Props) => {
+    return null; // 服务器列表已隐藏
     const intl = useIntl();
     const serverUrl = useServerUrl();
     const theme = useTheme();

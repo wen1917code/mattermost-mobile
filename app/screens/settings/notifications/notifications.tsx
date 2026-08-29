@@ -6,6 +6,7 @@ import {defineMessages, useIntl} from 'react-intl';
 import {Notifications as RNNotifications} from 'react-native-notifications';
 
 import {getCallsConfig} from '@calls/state';
+import BoolSetting from '@components/settings/bool_setting';
 import SettingContainer from '@components/settings/container';
 import SettingItem from '@components/settings/item';
 import {General, Screens} from '@constants';
@@ -14,6 +15,7 @@ import useAndroidHardwareBackHandler from '@hooks/android_back_handler';
 import {useAppState} from '@hooks/device';
 import useNotificationProps from '@hooks/notification_props';
 import {navigateBack, navigateToSettingsScreen} from '@screens/navigation';
+import {loadSummarySetting, setSummarySetting, isSummaryEnabled} from '@utils/webview_setting';
 import {logError} from '@utils/log';
 import {getEmailInterval, getEmailIntervalTexts} from '@utils/user';
 
@@ -67,6 +69,16 @@ const Notifications = ({
     const [isRegistered, setIsRegistered] = useState(true);
 
     const appState = useAppState();
+    const [summaryEnabled, setSummaryEnabled] = useState(false);
+
+    useEffect(() => {
+        loadSummarySetting().then(setSummaryEnabled);
+    }, []);
+
+    const handleSummaryToggle = useCallback((value: boolean) => {
+        setSummaryEnabled(value);
+        setSummarySetting(value, serverUrl);
+    }, []);
 
     useEffect(() => {
         let isCurrent = true;
@@ -164,6 +176,14 @@ const Notifications = ({
                     testID='notification_settings.automatic_replies.option'
                 />
             )}
+            <BoolSetting
+                label={intl.formatMessage({id: 'settings.notification_summary', defaultMessage: '简略通知'})}
+                placeholder={intl.formatMessage({id: 'settings.notification_summary.desc', defaultMessage: '开启后不显示具体消息内容和群组名称，更安全，且更省电'})}
+                value={summaryEnabled}
+                onChange={handleSummaryToggle}
+                testID='notification_settings.summary.option'
+                location={Screens.SETTINGS_NOTIFICATION}
+            />
             <SendTestNotificationNotice
                 serverVersion={serverVersion}
                 userId={currentUser?.id || ''}

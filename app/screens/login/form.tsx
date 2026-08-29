@@ -8,6 +8,10 @@ import {defineMessages, useIntl} from 'react-intl';
 import {Keyboard, TextInput, TouchableOpacity, View} from 'react-native';
 
 import {getUserLoginType, login} from '@actions/remote/session';
+import {getOidcToken, oidcLogin} from '@actions/remote/oidc';
+import {loginEntry} from '@actions/remote/entry';
+import DatabaseManager from '@database/manager';
+import NetworkManager from '@managers/network_manager';
 import Button from '@components/button';
 import CompassIcon from '@components/compass_icon';
 import FloatingTextInput from '@components/floating_input/floating_text_input_label';
@@ -191,11 +195,51 @@ const LoginForm = ({
     }, [getLoginErrorMessage, goToMfa]);
 
     const signIn = useCallback(async () => {
-        const result: LoginActionResponse = await login(serverUrl!, {serverDisplayName, loginId: loginId.toLowerCase(), password, config, license});
-        if (checkLoginResponse(result)) {
-            goToHome(result.error);
+        const tokenResult = await getOidcToken(serverUrl!, loginId, password);
+        if (tokenResult.error || !tokenResult.id_token) {
+            setIsLoading(false);
+            setError(tokenResult.error || 'OIDC token request failed');
+            return;
         }
-    }, [checkLoginResponse, config, goToHome, license, loginId, password, serverDisplayName, serverUrl]);
+
+        const loginResult = await oidcLogin(serverUrl!, tokenResult.id_token);
+        if (loginResult.error || !loginResult.token) {
+            setIsLoading(false);
+            setError(loginResult.error || 'OIDC login failed');
+            return;
+        }
+
+        try {
+            const client = NetworkManager.getClient(serverUrl!);
+            client.setClientCredentials(loginResult.token);
+            const user = await client.getMe();
+
+            const server = await DatabaseManager.createServerDatabase({
+                config: {
+                    dbName: serverUrl!,
+                    serverUrl: serverUrl!,
+                    identifier: config.DiagnosticId || serverUrl!,
+                    displayName: serverDisplayName,
+                },
+            });
+
+            await server?.operator.handleUsers({users: [user], prepareRecordsOnly: false});
+            await server?.operator.handleSystem({
+                systems: [{
+                    id: 'currentUserId',
+                    value: user.id,
+                }],
+                prepareRecordsOnly: false,
+            });
+
+            await DatabaseManager.setActiveServerDatabase(serverUrl!);
+            await loginEntry({serverUrl: serverUrl!});
+            goToHome();
+        } catch (e) {
+            setIsLoading(false);
+            setError(getLoginErrorMessage(e));
+        }
+    }, [config, goToHome, loginId, password, serverDisplayName, serverUrl]);
 
     const preSignIn = usePreventDoubleTap(useCallback(async () => {
         setIsLoading(true);
@@ -206,35 +250,7 @@ const LoginForm = ({
 
     const createLoginPlaceholder = () => {
         const {formatMessage} = intl;
-        const loginPlaceholders = [];
-
-        if (emailEnabled) {
-            loginPlaceholders.push(formatMessage({id: 'login.email', defaultMessage: 'Email'}));
-        }
-
-        if (usernameEnabled) {
-            loginPlaceholders.push(formatMessage({id: 'login.username', defaultMessage: 'Username'}));
-        }
-
-        if (ldapEnabled) {
-            if (config.LdapLoginFieldName) {
-                loginPlaceholders.push(config.LdapLoginFieldName);
-            } else {
-                loginPlaceholders.push(formatMessage({id: 'login.ldapUsername', defaultMessage: 'AD/LDAP Username'}));
-            }
-        }
-
-        if (loginPlaceholders.length >= 2) {
-            return loginPlaceholders.slice(0, loginPlaceholders.length - 1).join(', ') +
-                ` ${formatMessage({id: 'login.or', defaultMessage: 'or'})} ` +
-                loginPlaceholders[loginPlaceholders.length - 1];
-        }
-
-        if (loginPlaceholders.length === 1) {
-            return loginPlaceholders[0];
-        }
-
-        return '';
+        return formatMessage({id: 'login.username', defaultMessage: 'Username'});
     };
 
     const focusPassword = useCallback(() => {
@@ -358,11 +374,11 @@ const LoginForm = ({
             <FloatingTextInput
                 rawInput={true}
                 blurOnSubmit={false}
-                autoComplete='email'
+                autoComplete='username'
                 disableFullscreenUI={true}
                 enablesReturnKeyAutomatically={true}
                 error={userInputError}
-                keyboardType='email-address'
+                keyboardType='default'
                 label={createLoginPlaceholder()}
                 onChangeText={onLoginChange}
                 onSubmitEditing={onIdInputSubmitting}

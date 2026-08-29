@@ -17,23 +17,9 @@ export function pushDisabledInServerAck(serverUrl: string) {
     return getPushDisabledInServerAcknowledged(extractedDomain);
 }
 
-export async function canReceiveNotifications(serverUrl: string, verification: string, intl: IntlShape) {
-    const hasAckNotification = await pushDisabledInServerAck(serverUrl);
-
-    switch (verification) {
-        case PUSH_PROXY_RESPONSE_NOT_AVAILABLE:
-            EphemeralStore.setPushProxyVerificationState(serverUrl, PUSH_PROXY_STATUS_NOT_AVAILABLE);
-            if (!hasAckNotification) {
-                alertPushProxyError(intl, serverUrl);
-            }
-            break;
-        case PUSH_PROXY_RESPONSE_UNKNOWN:
-            EphemeralStore.setPushProxyVerificationState(serverUrl, PUSH_PROXY_STATUS_UNKNOWN);
-            alertPushProxyUnknown(intl);
-            break;
-        default:
-            EphemeralStore.setPushProxyVerificationState(serverUrl, PUSH_PROXY_STATUS_VERIFIED);
-    }
+export async function canReceiveNotifications(serverUrl: string, _verification: string, _intl: IntlShape) {
+    // FCM disabled — all push goes through WebSocket. Always mark as verified.
+    EphemeralStore.setPushProxyVerificationState(serverUrl, PUSH_PROXY_STATUS_VERIFIED);
 }
 
 const handleAlertResponse = async (buttonIndex: number, serverUrl?: string) => {

@@ -41,8 +41,8 @@ class DatabaseHelper {
     }
 
     private fun setDefaultDatabase(context: Context) {
-        val databaseName = "app.db"
-        val databasePath = Uri.fromFile(context.filesDir).toString() + "/" + databaseName
+        val databaseName = "app" // WMDatabase adds .db internally
+        val databasePath = context.filesDir.absolutePath + "/" + databaseName
         defaultDatabase = WMDatabase.getInstance(databasePath, context)
     }
 

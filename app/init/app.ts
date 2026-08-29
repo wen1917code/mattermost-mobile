@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {CallsManager} from '@calls/calls_manager';
+import {AppState, NativeModules} from 'react-native';
 import DatabaseManager from '@database/manager';
 import CallsNative from '@init/calls_native';
 import {getAllServerCredentials} from '@init/credentials';
@@ -15,6 +16,8 @@ import SessionManager from '@managers/session_manager';
 import WebsocketManager from '@managers/websocket_manager';
 import EphemeralStore from '@store/ephemeral_store';
 import {NavigationStore} from '@store/navigation_store';
+import {checkForUpdate} from '@utils/ota_update';
+import {syncAllSettingsFromServer} from '@utils/webview_setting';
 
 // Controls whether the main initialization (database, etc...) is done, either on app launch
 // or on the Share Extension, for example.
@@ -48,6 +51,11 @@ export async function initialize() {
         // complete before WebSocket clients start populating server databases.
         await OfflinePersistenceManager.init(serverCredentials);
         await WebsocketManager.init(serverCredentials);
+
+        // 从服务端同步 WebView 域名白名单
+        for (const cred of serverCredentials) {
+            syncAllSettingsFromServer(cred.serverUrl);
+        }
     }
 
     NavigationStore.reset();
@@ -63,6 +71,21 @@ export async function initialize() {
     CallsNative.init();
 
     PushNotifications.init(serverCredentials.length > 0);
+
+    // OTA 更新检查（异步，不阻塞启动）
+    checkForUpdate();
+
+    // 启动双进程守护
+    try { NativeModules.DaemonStartModule.startDaemon(); } catch {}
+
+    // 保活：通知原生层前台状态，后台时启动 1px Activity
+    AppState.addEventListener('change', (state) => {
+        const isActive = state === 'active';
+        try { NativeModules.DaemonStartModule.setForeground(isActive); } catch {}
+        if (!isActive) {
+            try { NativeModules.DaemonStartModule.showKeepAlive(); } catch {}
+        }
+    });
 }
 
 export function cleanup() {

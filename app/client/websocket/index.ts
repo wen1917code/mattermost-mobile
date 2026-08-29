@@ -140,6 +140,7 @@ export default class WebSocketClient {
 
         try {
             const headers: ClientHeaders = {origin};
+            headers[ClientConstants.HEADER_USER_AGENT] = 'Mattermost Mobile';
             if (Platform.OS === 'android') {
                 // Required to properly handled the reliableWebsocket reconnection
                 // iOS is using he underlying cookieJar

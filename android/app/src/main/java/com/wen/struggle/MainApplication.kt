@@ -1,10 +1,13 @@
-package com.mattermost.rnbeta
+package com.wen.struggle
 
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -42,6 +45,7 @@ class MainApplication : Application(), ReactApplication, INotificationsApplicati
             context = applicationContext,
             packageList = PackageList(this).packages.apply {
                 add(WatermelonDBJSIPackage())
+                add(InstallApkPackage())
             },
             jsMainModulePath = "index"
         )
@@ -49,6 +53,43 @@ class MainApplication : Application(), ReactApplication, INotificationsApplicati
 
     override fun onCreate() {
         super.onCreate()
+
+        // Create notification channels
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            // Custom channel for WebSocket push
+            val msgChannel = NotificationChannel(
+                "messages",
+                "新消息",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                setShowBadge(true)
+                setBypassDnd(true)
+                description = "消息推送通知"
+            }
+            manager.createNotificationChannel(msgChannel)
+            // Default channel used by react-native-notifications
+            val defaultChannel = NotificationChannel(
+                "channel_01",
+                "消息通知",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                setShowBadge(true)
+                setBypassDnd(true)
+                description = "接收新消息通知"
+            }
+            manager.createNotificationChannel(defaultChannel)
+        }
+
+        // Create SyncAdapter virtual account for periodic sync
+        try {
+            val account = android.accounts.Account("struggle", "com.wen.struggle")
+            val am = android.accounts.AccountManager.get(this)
+            if (am.addAccountExplicitly(account, null, null)) {
+                android.content.ContentResolver.setSyncAutomatically(account, "com.wen.struggle.sync", true)
+                android.content.ContentResolver.requestSync(account, "com.wen.struggle.sync", android.os.Bundle())
+            }
+        } catch (_: Exception) {}
 
         // Initialize Sentry early for native crash reporting
         RNSentrySDK.init(this)
@@ -64,7 +105,7 @@ class MainApplication : Application(), ReactApplication, INotificationsApplicati
         // with a cookie jar defined in APIClientModule and an interceptor to intercept all
         // requests that originate from React Native's OKHttpClient
         OkHttpClientProvider.setOkHttpClientFactory(RCTOkHttpClientFactory())
-        ExpoImageOkHttpClientGlideModule.okHttpClient = RCTOkHttpClientFactory().createNewNetworkModuleClient()
+        // ExpoImageOkHttpClientGlideModule.okHttpClient = RCTOkHttpClientFactory().createNewNetworkModuleClient()
 
         loadReactNative(this)
         ApplicationLifecycleDispatcher.onApplicationCreate(this)

@@ -1,4 +1,4 @@
-package com.mattermost.rnbeta;
+package com.wen.struggle;
 
 import android.app.Notification;
 import android.app.NotificationManager;

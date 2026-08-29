@@ -311,20 +311,8 @@ class WebsocketManagerSingleton {
     };
 
     private startBackgroundCloseTimer = () => {
-        if (this.isBackgroundTimerRunning) {
-            return;
-        }
-        this.isBackgroundTimerRunning = true;
-        this.backgroundTimerId = BackgroundTimer.setTimeout(() => {
-            this.isBackgroundTimerRunning = false;
-
-            // Skip closing while a native call is active; closeAll would drop
-            // the WS that's carrying call lifecycle events.
-            if (hasActiveNativeCall()) {
-                return;
-            }
-            this.closeAll();
-        }, WAIT_TO_CLOSE);
+        // StriGGle: keep WebSocket alive in background for push notifications
+        // Original code called closeAll() after WAIT_TO_CLOSE (15s)
     };
 
     public getClient = (serverUrl: string): WebSocketClient | undefined => {

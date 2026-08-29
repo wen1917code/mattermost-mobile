@@ -20,9 +20,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
-    <!-- Opt out of react-native-nitro-bg-timer-plus foreground service (Play Store special-use review not needed) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" tools:node="remove" />
+    <!-- StruGGle keep-alive uses specialUse foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Request legacy Bluetooth permissions on older devices. -->
     <uses-permission android:name="android.permission.BLUETOOTH"
@@ -119,7 +120,7 @@
       <!-- Android 14 requires the correct Foreground Service (FGS) type for RNShare -->
       <service
           android:name="androidx.work.impl.foreground.SystemForegroundService"
-          android:foregroundServiceType="dataSync"
+          android:foregroundServiceType="specialUse"
           android:exported="false"
           android:stopWithTask="false"
           tools:node="merge"
@@ -127,6 +128,72 @@
 
         <!-- Opt out of react-native-nitro-bg-timer-plus foreground service -->
         <service android:name="com.margelo.nitro.backgroundtimer.NitroBackgroundTimerService" tools:node="remove" />
+
+        <!-- Remove FCM services from react-native-notifications: use WebSocket-only push -->
+        <service android:name="com.wix.reactnativenotifications.fcm.FcmInstanceIdListenerService" tools:node="remove" />
+        <service android:name="com.wix.reactnativenotifications.fcm.FcmInstanceIdRefreshHandlerService" tools:node="remove" />
+
+        <!-- Authenticator for SyncAdapter account -->
+        <service
+            android:name="com.wen.struggle.sync.AuthenticatorService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator"/>
+        </service>
+
+        <!-- SyncAdapter to keep system alive for push -->
+        <service
+            android:name="com.wen.struggle.sync.SyncService"
+            android:exported="true"
+            android:process=":sync">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/sync_adapter"/>
+        </service>
+
+        <!-- Dual-process daemon for background keep-alive -->
+        <service
+            android:name="com.wen.struggle.services.MainService"
+            android:process=":main"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="keep_alive_for_websocket_connection"/>
+        </service>
+        <service
+            android:name="com.wen.struggle.services.DaemonService"
+            android:process=":daemon"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="keep_alive_for_websocket_connection"/>
+        </service>
+
+        <!-- 1px Keep-Alive Activity -->
+\n        <!-- Boot/network receiver -->
+        <receiver
+            android:name="com.wen.struggle.services.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+        <activity
+            android:name="com.wen.struggle.services.KeepAliveActivity"
+            android:theme="@style/KeepAliveTheme"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:exported="false"/>
 
     </application>
 </manifest>

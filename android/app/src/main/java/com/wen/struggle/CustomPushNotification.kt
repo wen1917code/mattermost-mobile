@@ -1,5 +1,6 @@
-package com.mattermost.rnbeta
+package com.wen.struggle
 
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Bundle
@@ -133,17 +134,13 @@ class CustomPushNotification(
 
     private fun buildNotification(notificationId: Int, createSummary: Boolean) {
         val pendingIntent = NotificationIntentAdapter.createPendingNotificationIntent(mContext, mNotificationProps)
-        val notification = buildNotification(pendingIntent)
+        val bundle = mNotificationProps.asBundle()
+        val notification = CustomPushNotificationHelper.createNotificationBuilder(mContext, pendingIntent, bundle, false).build()
         if (createSummary) {
             val summary = getNotificationSummaryBuilder(pendingIntent).build()
             super.postNotification(summary, notificationId + 1)
         }
         super.postNotification(notification, notificationId)
-    }
-
-    override fun getNotificationBuilder(intent: PendingIntent): NotificationCompat.Builder {
-        val bundle = mNotificationProps.asBundle()
-        return CustomPushNotificationHelper.createNotificationBuilder(mContext, intent, bundle, false)
     }
 
     private fun getNotificationSummaryBuilder(intent: PendingIntent): NotificationCompat.Builder {

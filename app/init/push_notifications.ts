@@ -56,7 +56,7 @@ class PushNotificationsSingleton {
     subscriptions?: EmitterSubscription[];
 
     init(register: boolean) {
-        logDebug('PushNotifications: Initializing');
+        logDebug('PushNotifications: Initializing (FCM disabled, WebSocket-only)');
         this.subscriptions?.forEach((v) => v.remove());
         this.subscriptions = [
             Notifications.events().registerNotificationOpened(this.onNotificationOpened),
@@ -82,7 +82,8 @@ class PushNotificationsSingleton {
         if (!isRegistered) {
             await requestNotifications(['alert', 'sound', 'badge']);
         }
-        Notifications.registerRemoteNotifications();
+        // FCM registration disabled — using WebSocket-only push
+        // Notifications.registerRemoteNotifications();
 
         // Never call Notifications.registerPushKit() — PushKit is owned by
         // @mattermost/calls-native; a second PKPushRegistry would break it.

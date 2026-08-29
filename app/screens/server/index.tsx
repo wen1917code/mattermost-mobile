@@ -82,6 +82,7 @@ const Server = ({
     const [connecting, setConnecting] = useState(false);
     const [displayName, setDisplayName] = useState<string>('');
     const [buttonDisabled, setButtonDisabled] = useState(true);
+    const [isAutoConnecting, setIsAutoConnecting] = useState(LocalConfig.AutoSelectServerUrl && Boolean(LocalConfig.DefaultServerUrl));
     const [preauthSecret, setPreauthSecret] = useState<string>('');
     const [url, setUrl] = useState<string>('');
     const [displayNameError, setDisplayNameError] = useState<string | undefined>();
@@ -295,6 +296,12 @@ const Server = ({
         return true;
     };
 
+    useEffect(() => {
+        if (urlError && !connecting) {
+            setIsAutoConnecting(false);
+        }
+    }, [urlError, connecting]);
+
     const pingServer = async (pingUrl: string, retryWithHttp = true) => {
         let canceled = false;
         setConnecting(true);
@@ -427,6 +434,7 @@ const Server = ({
             testID='server.screen'
         >
             <Background theme={theme}/>
+            {isAutoConnecting ? null : (
             <Animated.View
                 key={'server_content'}
                 style={[styles.flex, animatedStyles]}
@@ -472,6 +480,7 @@ const Server = ({
                     </View>
                 </KeyboardAwareScrollView>
             </Animated.View>
+            )}
         </View>
     );
 };
