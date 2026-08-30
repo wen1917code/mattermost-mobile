@@ -192,6 +192,7 @@ class MattermostWebSocket(
                     data.optString("sender_name").removePrefix("@")
                 }
                 .ifEmpty { "新消息" }
+            Log.i(TAG, "收到 posted 事件: postId=${post.optString("id")} channel=$title")
             listener.onPosted(
                 post.optString("id"),
                 post.optString("user_id"),

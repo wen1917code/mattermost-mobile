@@ -97,6 +97,10 @@ export async function initialize() {
     try { NativeModules.DaemonStartModule.startDaemon(); } catch {}
 
     // 前后台通知原生：前台时原生 WebSocket 让位给 JS，后台时按心跳策略接管
+    // 注：RN 的 AppState 'change' 在冷启动时不触发初始事件，需主动同步一次当前状态
+    try {
+        NativeModules.DaemonStartModule.setForeground(AppState.currentState === 'active');
+    } catch {}
     AppState.addEventListener('change', (state) => {
         const isActive = state === 'active';
         try { NativeModules.DaemonStartModule.setForeground(isActive); } catch {}
