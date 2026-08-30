@@ -65,6 +65,11 @@ export async function initialize() {
         // JS WebSocket 健康心跳：原生服务据此判断后台时是否需要接管推送。
         // 进程被杀/冻结/断连时心跳消失，原生在 90 秒内自动接管。
         try {
+            // 先立即报一次（不等首个 30s 周期），让原生尽快知道 JS 已就绪
+            const isConnectedNow = serverCredentials.some(
+                (c) => WebsocketManager.getClient(c.serverUrl)?.isConnected(),
+            );
+            NativeModules.DaemonStartModule.heartbeat(isConnectedNow);
             BackgroundTimer.setInterval(() => {
                 try {
                     const connected = serverCredentials.some(

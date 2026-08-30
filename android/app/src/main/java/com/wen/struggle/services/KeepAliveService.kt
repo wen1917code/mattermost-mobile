@@ -119,6 +119,12 @@ class KeepAliveService : Service() {
         Log.w(TAG, "KeepAliveService.onCreate pid=${android.os.Process.myPid()}")
         createChannels()
         startInForeground()
+        // 进程是新拉起的：JS 与本服务同进程，进程死过则心跳必已失效，
+        // 旧心跳会让原生白等 90 秒造成通知空窗——立即清零，让原生马上接管
+        prefs(this).edit()
+            .putLong(KEY_LAST_JS_HEARTBEAT, 0L)
+            .putBoolean(KEY_JS_WS_CONNECTED, false)
+            .apply()
         try {
             registerReceiver(
                 connectivityReceiver,
