@@ -4,6 +4,8 @@ apply plugin: "com.facebook.react"
 
 def versionCounterFile = file("$rootDir/version_counter.txt")
 def currentVersion = versionCounterFile.exists() ? versionCounterFile.text.trim() : "0.01"
+// versionCode 与版本号联动：0.50 -> 787（与历史值吻合），0.52 -> 789，单调递增
+def currentVersionCode = 737 + (int) Math.round(Double.parseDouble(currentVersion) * 100)
 def skipDeploy = project.hasProperty('skipDeploy')
 
 // 版本号只读：versionName 直接取计数器当前值，配置阶段不递增
@@ -144,8 +146,7 @@ android {
         applicationId "com.wen.struggle"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // 与版本号联动：0.52 -> 789（0.50 -> 787 与历史值吻合，保持单调递增）
-        versionCode (int) (737 + Math.round(Double.parseDouble(currentVersion) * 100))
+        versionCode currentVersionCode
         versionName currentVersion
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
