@@ -6,7 +6,7 @@ HOST=root@64.90.31.124
 APK_LOCAL=android/app/build/outputs/apk/release/app-release.apk
 APK_REMOTE=/var/www/dl-hegouzi/StruGGle.apk
 VERSION_FILE=android/version_counter.txt
-URL="https://dl.hegoulaogouzi.icu/StruGGle.apk"
+URL="https://dl.ant.wenzi.uno/StruGGle.apk"
 
 VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "0.01")
 echo "部署版本: $VERSION"

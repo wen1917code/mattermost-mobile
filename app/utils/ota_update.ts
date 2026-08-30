@@ -5,7 +5,7 @@ import {nativeApplicationVersion as getNativeVersion} from 'expo-application';
 import * as FileSystem from 'expo-file-system/legacy';
 import {Alert, NativeModules} from 'react-native';
 
-const UPDATE_URL = 'https://dl.hegoulaogouzi.icu/version.json';
+const UPDATE_URL = 'https://dl.ant.wenzi.uno/version.json';
 const APK_FILENAME = 'StruGGle.apk';
 
 let lastNotifiedPercent = -1;

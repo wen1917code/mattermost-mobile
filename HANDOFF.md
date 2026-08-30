@@ -110,11 +110,12 @@ ANDROID_HOME=/usr/lib/android-sdk \
 - SSL：sg 到期 2026-10-13、auth 10-19、dl 10-12（certbot 正常续期）
 - 同机还有 synapse（:8008）、jitsi、ntfy（:8082）
 
-## 6. 线上现存问题（需用户处理）
+## 6. 线上现存问题
 
-| 问题 | 状态 | 处理方式 |
+| 问题 | 状态 | 说明 |
 |---|---|---|
-| **OTA 域名 DNS 全挂** | 🔴 线上 OTA 中断 | `dl.hegoulaogouzi.icu` 在 .icu 注册局**无 NS 委派**（whois 正常，2027-05 到期，西部数码注册）。**登录西部数码后台重设 NS**；或迁移到 dl.ant.wenzi.uno（需手动加 DNS 记录——wenzi.uno 无泛解析）+ nginx 站点 + 证书 + 改客户端 UPDATE_URL |
+| ~~OTA 域名 DNS 全挂~~ | ✅ **已迁移** | 2026-08-30 迁移到 `dl.ant.wenzi.uno`：Cloudflare A 记录（DNS only）→ 64.90.31.124，dns-cloudflare 签证书（至 2026-11-28），nginx 站点 `/etc/nginx/sites-available/dl.ant.wenzi.uno`（与旧 dl 站同根目录 /var/www/dl-hegouzi）。客户端 `ota_update.ts` 与 `deploy.sh` 均已切新域名。Cloudflare 凭据在服务器 `/root/.secrets/cloudflare.ini`，zone=98ae978aa8c403e1e75b9ae9d6bb6cca |
+| **存量设备 OTA 断供** | 🟡 | 0.51 及以下版本 App 内置的是旧域名 `dl.hegoulaogouzi.icu`（DNS 已死），**这些设备永远收不到 OTA**。要么在各设备手动装一次 0.52+，要么登录西部数码修复旧域名 NS（修复后旧版 App 会看到 version.json——内容已指向新域名下载地址，可完成一次性跳转升级） |
 | 服务器 version.json=0.50 与线上 APK 内部版本 0.51 不一致 | 🟡 | 下次正常部署 0.53 后自然对齐 |
 | vivo 真机保活效果 | ⏳ | 需真机验证；force-stop/一键加速任何 App 都无法复活（系统限制），靠电池白名单+自启动引导预防 |
 
