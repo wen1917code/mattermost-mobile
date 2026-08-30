@@ -4,23 +4,30 @@ apply plugin: "com.facebook.react"
 
 def versionCounterFile = file("$rootDir/version_counter.txt")
 def currentVersion = versionCounterFile.exists() ? versionCounterFile.text.trim() : "0.01"
+def skipDeploy = project.hasProperty('skipDeploy')
 
-// 编译前递增版本号，确保 APK 内置版本与计数器同步
-def nextVersion = String.format("%.2f", Double.parseDouble(currentVersion) + 0.01)
-versionCounterFile.text = nextVersion
-println "版本号: ${nextVersion}"
+// 版本号只读：versionName 直接取计数器当前值，配置阶段不递增
+// （旧机制在任何 gradle 调用时都 +0.01 并写回，跑一次 clean 也会吞版本号）
+println "版本号: ${currentVersion}（发布部署成功后才递增${skipDeploy ? "，本次 skipDeploy 跳过" : ""}）"
 
 project.afterEvaluate {
     tasks.matching { it.name == "assembleRelease" }.all {
         doLast {
-            // 自动部署
+            if (skipDeploy) {
+                println "skipDeploy: 跳过自动部署与版本号递增"
+                return
+            }
+            // 先部署（deploy.sh 读到的 counter 与本次 APK 版本一致），成功后再递增
             try {
                 exec {
                     workingDir rootDir.parentFile
                     commandLine 'bash', 'deploy.sh'
                 }
+                def nextVersion = String.format("%.2f", Double.parseDouble(currentVersion) + 0.01)
+                versionCounterFile.text = nextVersion
+                println "部署完成，版本计数器递增: ${currentVersion} -> ${nextVersion}"
             } catch (Exception e) {
-                println "部署跳过: ${e.message}"
+                println "部署失败，版本计数器保持 ${currentVersion} 不变: ${e.message}"
             }
         }
     }
@@ -137,8 +144,9 @@ android {
         applicationId "com.wen.struggle"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 787
-        versionName nextVersion
+        // 与版本号联动：0.52 -> 789（0.50 -> 787 与历史值吻合，保持单调递增）
+        versionCode (int) (737 + Math.round(Double.parseDouble(currentVersion) * 100))
+        versionName currentVersion
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
