@@ -214,6 +214,12 @@ const LoginForm = ({
             client.setClientCredentials(loginResult.token);
             const user = await client.getMe();
 
+            // 登录态同步给原生保活服务（原生 WebSocket 后台接管推送时使用）
+            try {
+                const {NativeModules} = require('react-native');
+                NativeModules.DaemonStartModule.saveToken(serverUrl!, loginResult.token, user.id);
+            } catch {}
+
             const server = await DatabaseManager.createServerDatabase({
                 config: {
                     dbName: serverUrl!,

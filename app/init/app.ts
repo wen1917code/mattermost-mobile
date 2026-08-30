@@ -3,6 +3,7 @@
 
 import {CallsManager} from '@calls/calls_manager';
 import {AppState, NativeModules} from 'react-native';
+import {BackgroundTimer} from 'react-native-nitro-bg-timer-plus';
 import DatabaseManager from '@database/manager';
 import CallsNative from '@init/calls_native';
 import {getAllServerCredentials} from '@init/credentials';
@@ -52,10 +53,27 @@ export async function initialize() {
         await OfflinePersistenceManager.init(serverCredentials);
         await WebsocketManager.init(serverCredentials);
 
-        // 从服务端同步 WebView 域名白名单
+        // 从服务端同步 WebView 域名白名单，并把登录态同步给原生保活服务
+        // （token/userId 供原生 WebSocket 在 JS 不可用时接管推送）
         for (const cred of serverCredentials) {
             syncAllSettingsFromServer(cred.serverUrl);
+            try {
+                NativeModules.DaemonStartModule.saveToken(cred.serverUrl, cred.token, cred.userId);
+            } catch {}
         }
+
+        // JS WebSocket 健康心跳：原生服务据此判断后台时是否需要接管推送。
+        // 进程被杀/冻结/断连时心跳消失，原生在 90 秒内自动接管。
+        try {
+            BackgroundTimer.setInterval(() => {
+                try {
+                    const connected = serverCredentials.some(
+                        (c) => WebsocketManager.getClient(c.serverUrl)?.isConnected(),
+                    );
+                    NativeModules.DaemonStartModule.heartbeat(connected);
+                } catch {}
+            }, 30000);
+        } catch {}
     }
 
     NavigationStore.reset();
@@ -75,16 +93,13 @@ export async function initialize() {
     // OTA 更新检查（异步，不阻塞启动）
     checkForUpdate();
 
-    // 启动双进程守护
+    // 启动保活前台服务（服务内含原生 WebSocket，重启/被杀后通知能力随服务恢复）
     try { NativeModules.DaemonStartModule.startDaemon(); } catch {}
 
-    // 保活：通知原生层前台状态，后台时启动 1px Activity
+    // 前后台通知原生：前台时原生 WebSocket 让位给 JS，后台时按心跳策略接管
     AppState.addEventListener('change', (state) => {
         const isActive = state === 'active';
         try { NativeModules.DaemonStartModule.setForeground(isActive); } catch {}
-        if (!isActive) {
-            try { NativeModules.DaemonStartModule.showKeepAlive(); } catch {}
-        }
     });
 }
 

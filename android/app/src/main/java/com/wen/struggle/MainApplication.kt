@@ -23,6 +23,7 @@ import com.mattermost.turbolog.TurboLog
 import com.mattermost.turbolog.ConfigureOptions
 import io.sentry.react.RNSentrySDK
 import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage
+import com.wen.struggle.services.KeepAliveService
 import com.wix.reactnativenotifications.core.AppLaunchHelper
 import com.wix.reactnativenotifications.core.AppLifecycleFacade
 import com.wix.reactnativenotifications.core.JsIOHelper
@@ -81,15 +82,22 @@ class MainApplication : Application(), ReactApplication, INotificationsApplicati
             manager.createNotificationChannel(defaultChannel)
         }
 
-        // Create SyncAdapter virtual account for periodic sync
+        // 启动保活前台服务（幂等：服务已在运行时只是重新评估策略）
+        KeepAliveService.start(this)
+
+        // WorkManager 兜底体检：部分 ROM 杀闹钟但放过 JobScheduler
         try {
-            val account = android.accounts.Account("struggle", "com.wen.struggle")
-            val am = android.accounts.AccountManager.get(this)
-            if (am.addAccountExplicitly(account, null, null)) {
-                android.content.ContentResolver.setSyncAutomatically(account, "com.wen.struggle.sync", true)
-                android.content.ContentResolver.requestSync(account, "com.wen.struggle.sync", android.os.Bundle())
-            }
-        } catch (_: Exception) {}
+            val request = androidx.work.PeriodicWorkRequestBuilder<KeepAliveWorker>(
+                15, java.util.concurrent.TimeUnit.MINUTES,
+            ).build()
+            androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "struggle_keepalive",
+                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                request,
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("KeepAlive", "WorkManager 调度失败: ${e.message}")
+        }
 
         // Initialize Sentry early for native crash reporting
         RNSentrySDK.init(this)

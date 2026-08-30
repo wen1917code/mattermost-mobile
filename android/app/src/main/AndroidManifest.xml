@@ -22,8 +22,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
-    <!-- StruGGle keep-alive uses specialUse foreground service -->
+    <!-- StruGGle keep-alive: 前台服务 + 健康检查闹钟 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
     <!-- Request legacy Bluetooth permissions on older devices. -->
     <uses-permission android:name="android.permission.BLUETOOTH"
@@ -133,44 +136,9 @@
         <service android:name="com.wix.reactnativenotifications.fcm.FcmInstanceIdListenerService" tools:node="remove" />
         <service android:name="com.wix.reactnativenotifications.fcm.FcmInstanceIdRefreshHandlerService" tools:node="remove" />
 
-        <!-- Authenticator for SyncAdapter account -->
+        <!-- 保活前台服务（主进程，原生 WebSocket 与通知在此进程，服务即推送载体） -->
         <service
-            android:name="com.wen.struggle.sync.AuthenticatorService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator"/>
-            </intent-filter>
-            <meta-data
-                android:name="android.accounts.AccountAuthenticator"
-                android:resource="@xml/authenticator"/>
-        </service>
-
-        <!-- SyncAdapter to keep system alive for push -->
-        <service
-            android:name="com.wen.struggle.sync.SyncService"
-            android:exported="true"
-            android:process=":sync">
-            <intent-filter>
-                <action android:name="android.content.SyncAdapter"/>
-            </intent-filter>
-            <meta-data
-                android:name="android.content.SyncAdapter"
-                android:resource="@xml/sync_adapter"/>
-        </service>
-
-        <!-- Dual-process daemon for background keep-alive -->
-        <service
-            android:name="com.wen.struggle.services.MainService"
-            android:process=":main"
-            android:foregroundServiceType="specialUse"
-            android:exported="false">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="keep_alive_for_websocket_connection"/>
-        </service>
-        <service
-            android:name="com.wen.struggle.services.DaemonService"
-            android:process=":daemon"
+            android:name="com.wen.struggle.services.KeepAliveService"
             android:foregroundServiceType="specialUse"
             android:exported="false">
             <property
@@ -178,15 +146,23 @@
                 android:value="keep_alive_for_websocket_connection"/>
         </service>
 
-        <!-- 1px Keep-Alive Activity -->
-\n        <!-- Boot/network receiver -->
+        <!-- 健康检查闹钟：周期确认服务存活，服务死亡时借闹钟临时白名单复活 -->
+        <receiver
+            android:name="com.wen.struggle.receivers.AlarmReceiver"
+            android:exported="false"/>
+
+        <!-- Boot / OTA 更新完成 / 快速开机 自启 -->
         <receiver
             android:name="com.wen.struggle.services.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWEREDON"/>
             </intent-filter>
         </receiver>
+
+        <!-- 1px Keep-Alive Activity（可选手段，默认不触发，保留给特殊 ROM 场景） -->
         <activity
             android:name="com.wen.struggle.services.KeepAliveActivity"
             android:theme="@style/KeepAliveTheme"
