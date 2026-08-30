@@ -71,7 +71,7 @@ KeepAliveActivity（1px）保留但默认不触发。
 | 8 | OTA 覆盖安装（adb install -r） | ✅ MY_PACKAGE_REPLACED → 15s 内服务自动复活 |
 | 9 | JS 心跳上报 | ✅ last_js_heartbeat 持续刷新，js_ws_connected 正确 |
 | 10 | 通知权限 | ✅ 首次开 App 由 requestNotifications 请求（Android 13+ 必需） |
-| 11 | vivo 真机（自启动/一键加速/后台高耗电） | ⏳ 待真机 |
+| 11 | vivo V2551A 真机（Android 16 / OriginOS，2026-08-30 无线 ADB 实测） | ✅ 全部通过：0.52/789 单进程；FGS specialUse 运行；通知权限+电池白名单已授；前台 JS 通道通知（声音+呼吸灯）；JS 死亡→原生接管实证（补收积压私信）；`am crash` 崩溃后 RN 无 UI 自启+JS WS 重连；**重启后 2 秒原生 WS 连接认证、未开 App 收到通知（channel=messages）——BootReceiver 未被 OriginOS 自启动管理拦截** |
 
 **验证方法备注**：模拟器测试用 `adb root` 直写 `/data/data/com.wen.struggle/shared_prefs/keepalive_prefs.xml`
 注入 token 实现"不打开 App"；发消息用 bot 账号 curl `POST /api/v4/posts`（注意 UA 必须带
