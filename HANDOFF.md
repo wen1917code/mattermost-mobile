@@ -67,7 +67,7 @@ KeepAliveActivity（1px）保留但默认不触发。
 | 4 | 通知图标 | ✅ `Icon(typ=RESOURCE pkg=com.wen.struggle id=0x7f...)`，非系统三角标 |
 | 5 | **重启设备不开 App 收通知** | ✅ BootReceiver 拉起→WS 认证→通知弹出（头条标准达成） |
 | 6 | kill -9 强杀自愈 | ✅ **2 秒**复活（START_STICKY 系统重启）+ 通知恢复 |
-| 7 | Doze 深度休眠 | ✅ 闹钟照常触发（网络被系统挂起属 AOSP 预期，需电池白名单豁免） |
+| 7 | Doze 深度休眠 | ✅ 闹钟照常触发。**vivo 真机补测（移除电池白名单+强制深睡）：消息延迟与正常态无差异**——发送(create_at)→原生WS收到(logcat) 原始毫秒差：正常态 5 条 avg 37ms（30-41），深睡 5 条 avg 33ms（29-38）；含手机-服务器时钟校正(+33ms,±30ms)后 avg 约 70/66ms。注：此为 posted 事件到达时间，非通知栏渲染时间；结论依据 V2551A 单机单网络（WiFi→香港服务器）10 样本 |
 | 8 | OTA 覆盖安装（adb install -r） | ✅ MY_PACKAGE_REPLACED → 15s 内服务自动复活 |
 | 9 | JS 心跳上报 | ✅ last_js_heartbeat 持续刷新，js_ws_connected 正确 |
 | 10 | 通知权限 | ✅ 首次开 App 由 requestNotifications 请求（Android 13+ 必需） |
@@ -123,7 +123,9 @@ ANDROID_HOME=/usr/lib/android-sdk \
 
 - force-stop 和 ROM"一键加速"会同时取消闹钟/任务/进程，**任何 App 无法事后复活**，
   只能靠白名单引导预防（设置页已有电池优化入口；vivo 专属引导页未做，见第 9 节）
-- 深度 Doze 下网络被系统挂起（非白名单 App），闹钟仍触发但消息可能延迟到维护窗口
+- 深度 Doze 理论上会挂起非白名单应用网络（AOSP 文档行为），但 V2551A 实测（强制深睡+无白名单）
+  WebSocket 长连接照常收消息、延迟无恶化（见矩阵第 7 项毫秒数据）——OriginOS 对 FGS 应用放行；
+  白名单仍建议开启作为保险。另：vivo 默认拒绝精确闹钟权限，代码已自动降级 setAndAllowWhileIdle（~90s 窗口）
 - JS WS 恢复的瞬间（≤30s 心跳周期）理论上可能与原生短暂双连接，用 postId 做通知 ID
   天然去重（同 post 重复 notify 是覆盖不是堆叠）
 - 登出未桥接：用户登出后 prefs 里 token 残留，原生会用旧 token 连接直至 401 弹"会话过期"
